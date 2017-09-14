@@ -46,8 +46,8 @@ cli
 .option('-o, --request_timeout [value]', 'default 60000', 60000)
 .option('-l, --log_path [value]', 'default ./reindex.log', './reindex.log')
 .option('-n, --max_docs [value]', 'default -1 unlimited', -1)
-.option('--from_ver [value]', 'default 1.7', '1.7')
-.option('--to_ver [value]', 'default 1.7', '1.7')
+.option('--from_ver [value]', 'default 5.x', '5.x')
+.option('--to_ver [value]', 'default 5.x', '5.x')
 .option('-p, --parent [value]', 'if set, uses this field as parent field', '')
 .option('-m, --promise [value]', 'if set indexes expecting promises, default: false', false)
 .option('-z, --compress [value]', 'if set, requests compression of data in transit', false)
@@ -324,8 +324,10 @@ if (cluster.isMaster) {
       }
       if (processed_total < total) {
         from.client.scroll({
-          scroll_id : res._scroll_id,
-          scroll : cli.scroll
+          body : {
+            scroll_id : res._scroll_id,
+            scroll : cli.scroll
+          }
         }, scroll_fetch);
       } else {
         var msg = "    " + shard_name + " Total " + processed_total + " documents have been processed!";
