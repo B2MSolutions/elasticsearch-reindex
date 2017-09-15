@@ -41,6 +41,7 @@ cli
 .option('-c, --concurrency [value]', 'concurrency for reindex', require('os').cpus().length)
 .option('-b, --bulk [value]', 'bulk size for a thread', 100)
 .option('-q, --query_size [value]', 'query size for scroll', 100)
+.option('-r, --search_body [value]', 'perform a partial extract based on search results', '')
 .option('-s, --scroll [value]', 'default 1m', '1m')
 .option('-i, --sniff_cluster [value]', 'sniff the rest of the cluster upon initial connection and connection errors', true)
 .option('-o, --request_timeout [value]', 'default 60000', 60000)
@@ -54,6 +55,7 @@ cli
 .option('-a, --access_key [value]', 'AWS access key', false)
 .option('-k, --secret_key [value]', 'AWS secret ket', false)
 .option('-e, --region [value]', 'AWS region', false)
+.option('-u, --update [value]', 'if set, create new/update existing docs, otherwite only create docs, default: false', false)
 .parse(process.argv);
 
 for (var key in cli) {
@@ -165,7 +167,7 @@ if (cluster.isMaster) {
 
     if (Object.keys(cluster.workers).length === 0) {
       if (bar.total === bar.curr)
-        console.log('Reindexing completed sucessfully.');
+        console.log('Reindexing completed.');
       else
         console.log('Failed to reindex ' + (bar.total - bar.curr) + ' (~'+ Math.round((100-(bar.curr/bar.total)*100)*1000)/1000 +'%) documents.');
     }
@@ -266,6 +268,10 @@ if (cluster.isMaster) {
     scan_options.body = _.extend(scan_options.body, custom_indexer.query);
   }
 
+  if (!_.isEmpty(cli.search_body)) {
+    scan_options.body = _.extend(scan_options.body, JSON.parse(cli.search_body));
+  }
+
   var reindexer = new Indexer();
 
   reindexer.on('item-failed', function(item) {
@@ -316,7 +322,8 @@ if (cluster.isMaster) {
       indexer     : custom_indexer ? custom_indexer.index : null,
       index       : to.index,
       type        : to.type,
-      parent      : cli.parent
+      parent      : cli.parent,
+      update      : cli.update
     }, function(err) {
       if (err) {
         logger.fatal(err);
