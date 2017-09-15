@@ -43,12 +43,12 @@ cli
 .option('-q, --query_size [value]', 'query size for scroll', 100)
 .option('-r, --search_body [value]', 'perform a partial extract based on search results', '')
 .option('-s, --scroll [value]', 'default 1m', '1m')
-.option('-i, --sniff_cluster [value]', 'sniff the rest of the cluster upon initial connection and connection errors', true)
+.option('-i, --sniff_cluster [value]', 'sniff the rest of the cluster upon initial connection and connection errors', false)
 .option('-o, --request_timeout [value]', 'default 60000', 60000)
 .option('-l, --log_path [value]', 'default ./reindex.log', './reindex.log')
 .option('-n, --max_docs [value]', 'default -1 unlimited', -1)
-.option('--from_ver [value]', 'default 5.x', '5.x')
-.option('--to_ver [value]', 'default 5.x', '5.x')
+.option('--from_ver [value]', 'default 5.1', '5.1')
+.option('--to_ver [value]', 'default 5.1', '5.1')
 .option('-p, --parent [value]', 'if set, uses this field as parent field', '')
 .option('-m, --promise [value]', 'if set indexes expecting promises, default: false', false)
 .option('-z, --compress [value]', 'if set, requests compression of data in transit', false)
@@ -201,7 +201,11 @@ if (cluster.isMaster) {
       apiVersion: apiVersion,
       suggestCompression: cli.compress,
       sniffOnStart: cli.sniff_cluster,
-      sniffOnConnectionFault: cli.sniff_cluster
+      sniffOnConnectionFault: cli.sniff_cluster,
+      maxRetries: 10,
+      keepAlive: true,
+      maxSockets: 10,
+      minSockets: 10
     };
 
     if (cli.access_key && cli.secret_key && cli.region && /\.amazonaws\./.test(uri)) {
@@ -221,31 +225,27 @@ if (cluster.isMaster) {
         tokens[2] = data[1];
     }
 
-
     if (tokens[2].indexOf(":") !== -1) {
         var hostData = tokens[2].split(":");
         tokens[2] = hostData[0];
         tokens[3] = hostData[1];
     }
-    res.client = new elasticsearch.Client({
-        hosts: [{
+
+    config.hosts = [{
         host: tokens[2],
         protocol: tokens[0].replace(":", ""),
         auth: tokens[1] != "" ? tokens[1] : null,
         port: tokens[3] != "" ? tokens[3] : "9200",
-        }],
-        maxRetries: 10,
-        keepAlive: true,
-        maxSockets: 10,
-        minSockets: 10,
-        createNodeAgent: function (connection, config) {
-            if("https" === config.hosts[0].protocol) {
+    }];
+
+    config.createNodeAgent = function (connection, config) {
+        if("https" === config.hosts[0].protocol) {
             return new AgentKeepAlive.HttpsAgent(connection.makeAgentConfig(config));
-            }
-            return new AgentKeepAlive(connection.makeAgentConfig(config));
         }
-      }
-    );
+        return new AgentKeepAlive(connection.makeAgentConfig(config));
+    };
+
+    res.client = new elasticsearch.Client(config);
     return res;
   }
 
