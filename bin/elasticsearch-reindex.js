@@ -14,7 +14,7 @@ var cli           = require('commander'),
 function make_scan_opts(from, cli) {
   if (cli.from_ver === '1.7' || cli.from_ver === '0.90') {
     return {
-      index       : from.index,
+      index       : from.index || cli.index,
       type        : from.type,
       search_type : 'scan',
       scroll      : cli.scroll,
@@ -24,7 +24,7 @@ function make_scan_opts(from, cli) {
   }
 
   return {
-    index       : from.index,
+    index       : from.index || cli.index,
     type        : from.type,
     scroll      : cli.scroll,
     size        : cli.query_size,
@@ -36,8 +36,8 @@ function make_scan_opts(from, cli) {
 
 cli
 .version('1.1.11')
-.option('-f, --from [value]', 'source index, eg. http://192.168.1.100:9200/old_index/old_type')
-.option('-t, --to [value]', 'to index, eg. http://192.168.1.100:9200/new_index/new_type')
+.option('-f, --from [value]', 'source, eg. http://192.168.1.100:9200/')
+.option('-t, --to [value]', 'to, eg. http://192.168.1.100:9200/')
 .option('-c, --concurrency [value]', 'concurrency for reindex', require('os').cpus().length)
 .option('-b, --bulk [value]', 'bulk size for a thread', 100)
 .option('-q, --query_size [value]', 'query size for scroll', 100)
@@ -56,6 +56,7 @@ cli
 .option('-k, --secret_key [value]', 'AWS secret ket', false)
 .option('-e, --region [value]', 'AWS region', false)
 .option('-u, --update [value]', 'if set, create new/update existing docs, otherwite only create docs, default: false', false)
+.option('-x, --index [value]', 'index name')
 .parse(process.argv);
 
 for (var key in cli) {
