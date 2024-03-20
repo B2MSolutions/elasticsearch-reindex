@@ -209,13 +209,21 @@ if (cluster.isMaster) {
       minSockets: 10
     };
 
-    if (cli.access_key && cli.secret_key && cli.region && /\.amazonaws\./.test(uri)) {
+    if (cli.region && /\.amazonaws\./.test(uri)) {
       config.connectionClass = require('http-aws-es');
-      config.amazonES = {
-        accessKey: cli.access_key,
-        secretKey: cli.secret_key,
-        region: cli.region
-      };
+
+      if (cli.access_key && cli.secret_key) {
+        config.amazonES = {
+          accessKey: cli.access_key,
+          secretKey: cli.secret_key,
+          region: cli.region
+        };
+      } else {
+        config.amazonES = {
+          region: cli.region,
+          getCredentials: true
+        };
+      }
     }
 
     config.host = res.host = tokens.join('/');
